@@ -1,0 +1,52 @@
+name: Deploy AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clonar el repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Configurar Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Instalar dependencias
+      - name: Install dependencies
+        run: |
+          mkdir package
+          pip install -r requirements.txt -t package
+
+      # Copiar el código de la Lambda
+      - name: Package Lambda
+        run: |
+          cp lambda_function.py package/
+          cd package
+          zip -r ../lambda.zip .
+
+      # Configurar credenciales de AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET }}
+          aws-region: us-east-2
+
+      # Desplegar la Lambda
+      - name: Deploy Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name lambda \
+            --zip-file fileb://lambda.zip
+
+      - name: Deployment Complete
+        run: echo "Lambda desplegada correctamente."
